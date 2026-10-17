@@ -1,3 +1,5 @@
+export * from './kedai';
+
 export type ServiceStatus = 'menunggu' | 'proses' | 'selesai' | 'diambil';
 
 export interface ServiceItem {

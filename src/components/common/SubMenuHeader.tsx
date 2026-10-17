@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Info, Sparkles, Wrench } from 'lucide-react';
+import { ArrowLeft, Info, Sparkles, UtensilsCrossed } from 'lucide-react';
 
 interface SubMenuHeaderProps {
   title: string;
@@ -7,29 +7,29 @@ interface SubMenuHeaderProps {
   infoLabel?: string;
   onBack: () => void;
   iconGraphic?: React.ReactNode;
+  themeColor?: string;
 }
 
 export const SubMenuHeader: React.FC<SubMenuHeaderProps> = ({
   title,
-  subtitle = 'Manajemen Bengkel',
+  subtitle = 'Manajemen KedaiQu',
   infoLabel,
   onBack,
-  iconGraphic
+  iconGraphic,
+  themeColor = '#2563EB'
 }) => {
   return (
     <div className="relative">
-      {/* Top Header: Solid Green Background */}
-      <div className="bg-[#008952] text-white px-5 pt-4 pb-8 relative overflow-hidden shadow-md">
-        {/* Subtle vector illustration graphic on the right */}
-        <div className="absolute -right-4 -bottom-6 opacity-15 pointer-events-none transform rotate-12 select-none">
-          {iconGraphic || (
-            <svg width="150" height="150" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.5 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" />
-            </svg>
-          )}
-        </div>
+      {/* Top Header: Dynamic Brand Background */}
+      <div 
+        style={{ backgroundColor: themeColor }}
+        className="text-white px-5 pt-4 pb-8 relative overflow-hidden shadow-md transition-colors"
+      >
         {/* Subtle decorative circles for depth */}
         <div className="absolute right-20 top-2 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+        <div className="absolute -right-4 -bottom-6 opacity-15 pointer-events-none select-none">
+          {iconGraphic || <UtensilsCrossed className="w-28 h-28 text-white" />}
+        </div>
 
         {/* Header Content Bar */}
         <div className="relative z-10 flex items-center justify-between">
@@ -43,14 +43,14 @@ export const SubMenuHeader: React.FC<SubMenuHeaderProps> = ({
             </button>
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight leading-tight">{title}</h1>
-              <p className="text-xs text-emerald-100 font-medium opacity-90">{subtitle}</p>
+              <p className="text-xs text-white/90 font-medium">{subtitle}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <div className="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-xs text-[11px] font-semibold text-white flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-emerald-200" />
-              <span>v1.60</span>
+              <Sparkles className="w-3 h-3 text-white/80" />
+              <span>KedaiQu</span>
             </div>
           </div>
         </div>
@@ -60,18 +60,23 @@ export const SubMenuHeader: React.FC<SubMenuHeaderProps> = ({
       <div className="px-4 -mt-5 relative z-20">
         <div className="bg-white rounded-xl px-4 py-3 shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-100/80 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 text-[#008952]">
+            <div 
+              style={{ color: themeColor }}
+              className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center shrink-0"
+            >
               <Info className="w-3.5 h-3.5" />
             </div>
             <div>
               <span className="text-xs font-semibold text-slate-800 tracking-tight">
-                {infoLabel || `Modul ${title} Bengkel Qu`}
+                {infoLabel || `Modul ${title}`}
               </span>
-              <p className="text-[10px] text-slate-500">Pilih menu navigasi di bawah untuk melanjutkan</p>
+              <p className="text-[10px] text-slate-500">Pilih sub-menu untuk mengelola operasional</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 bg-emerald-50 px-2 py-1 rounded-md text-[10px] font-bold text-[#008952]">
-            <Wrench className="w-3 h-3" />
+          <div 
+            style={{ color: themeColor, backgroundColor: `${themeColor}15` }}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold"
+          >
             <span>Aktif</span>
           </div>
         </div>

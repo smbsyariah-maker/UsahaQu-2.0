@@ -4,256 +4,239 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { KEDAIQU_NAV, KedaiQuNavModule, KedaiQuSubMenu } from './config/kedaiQuNav';
+import { AppTemplateSwitcher } from './config/appTemplateSwitch';
 import { 
-  MENU_MODULES, 
-  INITIAL_QUEUES, 
-  INITIAL_SPAREPARTS, 
-  INITIAL_TRANSACTIONS, 
-  INITIAL_MECHANICS, 
+  MenuItem, 
+  OrderTicket, 
+  RawIngredient, 
+  InboundStockRecord, 
+  StockOpnameRecord, 
+  KedaiCustomer, 
+  KedaiVoucher, 
+  StaffMember, 
+  StaffShiftRecord, 
+  StaffCommissionRecord, 
+  StoreProfile, 
+  GeminiApiConfig,
+  KitchenStatus
+} from './types/kedai';
+import { 
+  INITIAL_MENU_ITEMS, 
+  INITIAL_ORDERS, 
+  INITIAL_RAW_INGREDIENTS, 
   INITIAL_CUSTOMERS, 
-  INITIAL_NOTIFICATIONS,
-  INITIAL_PROFILE,
-  INITIAL_PERMISSIONS,
-  INITIAL_BRANCHES,
-  INITIAL_DAMAGED_GOODS,
-  INITIAL_PROCUREMENTS,
-  INITIAL_CAMPAIGNS,
-  INITIAL_VOUCHERS
-} from './data/mockData';
-import { 
-  MenuModuleConfig, 
-  SubMenuItemConfig, 
-  ServiceQueue, 
-  ServiceItem,
-  Sparepart, 
-  Transaction, 
-  ServiceStatus, 
-  CustomerVehicle, 
-  NotificationItem,
-  WorkshopProfile,
-  RolePermissionConfig,
-  BranchItem,
-  UserSession,
-  DamagedGood,
-  ProcurementRecord,
-  MarketingCampaign,
-  PromoVoucher,
-  ExpenseItem,
-  SubscriptionPlanId,
-  SubscriptionState,
-  ProDurationOption
-} from './types';
-import { 
-  getOrCreateDeviceId, 
-  validateSerialNumber, 
-  checkAndMigrateAppData,
-  PRO_TIERS
-} from './utils/licenseManager';
+  INITIAL_VOUCHERS, 
+  INITIAL_STAFF, 
+  INITIAL_SHIFTS, 
+  INITIAL_COMMISSIONS, 
+  INITIAL_INBOUND_RECORDS, 
+  INITIAL_OPNAME_RECORDS, 
+  INITIAL_STORE_PROFILE, 
+  INITIAL_GEMINI_CONFIG 
+} from './data/kedaiMockData';
 import { AndroidFrame } from './components/common/AndroidFrame';
 import { BottomNavBar } from './components/common/BottomNavBar';
 import { HomeDashboard } from './components/home/HomeDashboard';
 import { SubMenuPage } from './components/submenu/SubMenuPage';
-import { ServiceDetailView } from './components/views/ServiceDetailView';
-import { CashierPOSView } from './components/views/CashierPOSView';
-import { InventoryView } from './components/views/InventoryView';
-import { CustomerView } from './components/views/CustomerView';
-import { MarketingView } from './components/views/MarketingView';
-import { ReportView } from './components/views/ReportView';
-import { BasicProfileView } from './components/views/BasicProfileView';
-import { CorePermissionsView } from './components/views/CorePermissionsView';
-import { CorporateBranchesView } from './components/views/CorporateBranchesView';
-import { DeviceSyncView } from './components/views/DeviceSyncView';
-import { SettingView } from './components/views/SettingView';
-import { LoginScreen } from './components/auth/LoginScreen';
-import { NewQueueModal } from './components/modals/NewQueueModal';
-import { ReceiptModal } from './components/modals/ReceiptModal';
-import { NotificationDrawer } from './components/modals/NotificationDrawer';
+import { OrderModuleView } from './components/views/kedai/OrderModuleView';
+import { MenuModuleView } from './components/views/kedai/MenuModuleView';
+import { StokModuleView } from './components/views/kedai/StokModuleView';
+import { MarketingModuleView } from './components/views/kedai/MarketingModuleView';
+import { KaryawanModuleView } from './components/views/kedai/KaryawanModuleView';
+import { LaporanModuleView } from './components/views/kedai/LaporanModuleView';
+import { PengaturanModuleView } from './components/views/kedai/PengaturanModuleView';
+import { PelangganService } from './services/pelangganService';
+import { ResepEngine } from './services/resepEngine';
+import { AntrianService } from './services/antrianService';
 
 export default function App() {
-  // Persistence state
-  const [queues, setQueues] = useState<ServiceQueue[]>(() => {
-    const saved = localStorage.getItem('bq_queues');
-    return saved ? JSON.parse(saved) : INITIAL_QUEUES;
+  // Persistence state aligned with DataManager
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
+    const saved = localStorage.getItem('kq_katalog') || localStorage.getItem('kq_menu_items');
+    return saved ? JSON.parse(saved) : INITIAL_MENU_ITEMS;
   });
 
-  const [spareparts, setSpareparts] = useState<Sparepart[]>(() => {
-    const saved = localStorage.getItem('bq_spareparts');
-    return saved ? JSON.parse(saved) : INITIAL_SPAREPARTS;
+  const [orders, setOrders] = useState<OrderTicket[]>(() => {
+    const saved = localStorage.getItem('kq_transaksi') || localStorage.getItem('kq_orders');
+    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
   });
 
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('bq_transactions');
-    return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
+  const [rawIngredients, setRawIngredients] = useState<RawIngredient[]>(() => {
+    const saved = localStorage.getItem('kq_stok') || localStorage.getItem('kq_ingredients');
+    return saved ? JSON.parse(saved) : INITIAL_RAW_INGREDIENTS;
   });
 
-  const [customers, setCustomers] = useState<CustomerVehicle[]>(() => {
-    const saved = localStorage.getItem('bq_customers');
+  const [inboundRecords, setInboundRecords] = useState<InboundStockRecord[]>(() => {
+    const saved = localStorage.getItem('kq_inbounds');
+    return saved ? JSON.parse(saved) : INITIAL_INBOUND_RECORDS;
+  });
+
+  const [opnameRecords, setOpnameRecords] = useState<StockOpnameRecord[]>(() => {
+    const saved = localStorage.getItem('kq_opnames');
+    return saved ? JSON.parse(saved) : INITIAL_OPNAME_RECORDS;
+  });
+
+  const [customers, setCustomers] = useState<KedaiCustomer[]>(() => {
+    const saved = localStorage.getItem('kq_pelanggan') || localStorage.getItem('kq_customers');
     return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
   });
 
-  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
-    const saved = localStorage.getItem('bq_notifs');
-    return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
-  });
-
-  const [damagedGoods, setDamagedGoods] = useState<DamagedGood[]>(() => {
-    const saved = localStorage.getItem('bq_damaged_goods');
-    return saved ? JSON.parse(saved) : INITIAL_DAMAGED_GOODS;
-  });
-
-  const [procurements, setProcurements] = useState<ProcurementRecord[]>(() => {
-    const saved = localStorage.getItem('bq_procurements');
-    return saved ? JSON.parse(saved) : INITIAL_PROCUREMENTS;
-  });
-
-  const [campaigns, setCampaigns] = useState<MarketingCampaign[]>(() => {
-    const saved = localStorage.getItem('bq_campaigns');
-    return saved ? JSON.parse(saved) : INITIAL_CAMPAIGNS;
-  });
-
-  const [vouchers, setVouchers] = useState<PromoVoucher[]>(() => {
-    const saved = localStorage.getItem('bq_vouchers');
+  const [vouchers, setVouchers] = useState<KedaiVoucher[]>(() => {
+    const saved = localStorage.getItem('kq_vouchers');
     return saved ? JSON.parse(saved) : INITIAL_VOUCHERS;
   });
 
-  const [expenses, setExpenses] = useState<ExpenseItem[]>(() => {
-    const saved = localStorage.getItem('bq_kas_kecil');
-    return saved ? JSON.parse(saved) : [
-      { id: 'exp-1', title: 'Bensin Pertalite Tes Motor Tarikan', category: 'BBM / Transport', amount: 25000, date: 'Hari Ini', notes: 'Tes motor KLX BQ-05' },
-      { id: 'exp-2', title: 'Beli Air Mineral Galon & Gelas Kasir', category: 'Konsumsi', amount: 22000, date: 'Hari Ini', notes: 'Konsumsi bengkel' }
-    ];
+  const [staffList, setStaffList] = useState<StaffMember[]>(() => {
+    const saved = localStorage.getItem('kq_karyawan') || localStorage.getItem('kq_staff');
+    return saved ? JSON.parse(saved) : INITIAL_STAFF;
   });
 
-  const [profile, setProfile] = useState<WorkshopProfile>(() => {
-    const saved = localStorage.getItem('bq_profile');
-    return saved ? JSON.parse(saved) : INITIAL_PROFILE;
+  const [shiftRecords, setShiftRecords] = useState<StaffShiftRecord[]>(() => {
+    const saved = localStorage.getItem('kq_shifts');
+    return saved ? JSON.parse(saved) : INITIAL_SHIFTS;
   });
 
-  const [permissions, setPermissions] = useState<RolePermissionConfig[]>(() => {
-    const saved = localStorage.getItem('bq_permissions');
-    return saved ? JSON.parse(saved) : INITIAL_PERMISSIONS;
+  const [commissions, setCommissions] = useState<StaffCommissionRecord[]>(() => {
+    const saved = localStorage.getItem('kq_commissions');
+    return saved ? JSON.parse(saved) : INITIAL_COMMISSIONS;
   });
 
-  const [branches, setBranches] = useState<BranchItem[]>(() => {
-    const saved = localStorage.getItem('bq_branches');
-    return saved ? JSON.parse(saved) : INITIAL_BRANCHES;
+  const [storeProfile, setStoreProfile] = useState<StoreProfile>(() => {
+    const saved = localStorage.getItem('kq_profil') || localStorage.getItem('kq_profile');
+    return saved ? JSON.parse(saved) : INITIAL_STORE_PROFILE;
   });
 
-  const [userSession, setUserSession] = useState<UserSession | null>(() => {
-    const saved = localStorage.getItem('bq_user_session');
-    return saved ? JSON.parse(saved) : null;
+  const [geminiConfig, setGeminiConfig] = useState<GeminiApiConfig>(() => {
+    const saved = localStorage.getItem('kq_gemini');
+    return saved ? JSON.parse(saved) : INITIAL_GEMINI_CONFIG;
   });
 
-  // Status Aplikasi: Full Versi Permanen (Bebas Kuota & Semua Fitur Terbuka Penuh)
-  const [subscription, setSubscription] = useState<SubscriptionState>(() => {
-    const currentDeviceId = getOrCreateDeviceId();
-    const fullState: SubscriptionState = {
-      planId: 'corporate',
-      planName: 'Full Versi Permanen',
-      dailyRate: 0,
-      trialStartDate: Date.now(),
-      trialDurationDays: 3650,
-      isTrialActive: false,
-      trialDaysRemaining: 0,
-      isSubscribed: true,
-      deviceId: currentDeviceId
-    };
-    localStorage.setItem('bq_subscription', JSON.stringify(fullState));
-    return fullState;
-  });
-
-  // Auto-adapt data schema saat aplikasi dimuat (update langsung timpa tanpa uninstall)
+  // Local storage synchronization (writes to both standard DataManager keys and legacy keys)
   useEffect(() => {
-    checkAndMigrateAppData();
-  }, []);
+    localStorage.setItem('kq_katalog', JSON.stringify(menuItems));
+    localStorage.setItem('kq_menu_items', JSON.stringify(menuItems));
 
-  const handleLoginSuccess = (session: UserSession) => {
-    setUserSession(session);
-    localStorage.setItem('bq_user_session', JSON.stringify(session));
-  };
-
-  const handleLogout = () => {
-    setUserSession(null);
-    localStorage.removeItem('bq_user_session');
-    setCurrentScreen('dashboard');
-    setSelectedModule(null);
-  };
-
-  // Save to localStorage
-  useEffect(() => {
-    localStorage.setItem('bq_queues', JSON.stringify(queues));
-  }, [queues]);
+    // Sinkronisasi database resep kq_resep untuk ResepEngine
+    try {
+      const currentResep = JSON.parse(localStorage.getItem('kq_resep') || '{}');
+      menuItems.forEach((menu) => {
+        if (menu.name && menu.recipeIngredients && menu.recipeIngredients.length > 0) {
+          currentResep[menu.name] = {
+            menu_id: menu.id,
+            menu_code: menu.code,
+            menu_name: menu.name,
+            ingredients: menu.recipeIngredients.map((r) => ({
+              bahan_id: r.ingredientId,
+              bahan_name: r.ingredientName,
+              qty_used: r.amountNeeded,
+              unit: r.unit
+            }))
+          };
+        }
+      });
+      localStorage.setItem('kq_resep', JSON.stringify(currentResep));
+    } catch (e) {
+      // ignore
+    }
+  }, [menuItems]);
 
   useEffect(() => {
-    localStorage.setItem('bq_spareparts', JSON.stringify(spareparts));
-  }, [spareparts]);
+    localStorage.setItem('kq_transaksi', JSON.stringify(orders));
+    localStorage.setItem('kq_orders', JSON.stringify(orders));
+  }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem('bq_transactions', JSON.stringify(transactions));
-  }, [transactions]);
+    localStorage.setItem('kq_stok', JSON.stringify(rawIngredients));
+    localStorage.setItem('kq_ingredients', JSON.stringify(rawIngredients));
+  }, [rawIngredients]);
 
   useEffect(() => {
-    localStorage.setItem('bq_customers', JSON.stringify(customers));
+    localStorage.setItem('kq_inbounds', JSON.stringify(inboundRecords));
+  }, [inboundRecords]);
+
+  useEffect(() => {
+    localStorage.setItem('kq_opnames', JSON.stringify(opnameRecords));
+  }, [opnameRecords]);
+
+  useEffect(() => {
+    localStorage.setItem('kq_pelanggan', JSON.stringify(customers));
+    localStorage.setItem('kq_customers', JSON.stringify(customers));
   }, [customers]);
 
   useEffect(() => {
-    localStorage.setItem('bq_notifs', JSON.stringify(notifications));
-  }, [notifications]);
-
-  useEffect(() => {
-    localStorage.setItem('bq_damaged_goods', JSON.stringify(damagedGoods));
-  }, [damagedGoods]);
-
-  useEffect(() => {
-    localStorage.setItem('bq_procurements', JSON.stringify(procurements));
-  }, [procurements]);
-
-  useEffect(() => {
-    localStorage.setItem('bq_campaigns', JSON.stringify(campaigns));
-  }, [campaigns]);
-
-  useEffect(() => {
-    localStorage.setItem('bq_vouchers', JSON.stringify(vouchers));
+    localStorage.setItem('kq_vouchers', JSON.stringify(vouchers));
   }, [vouchers]);
 
   useEffect(() => {
-    localStorage.setItem('bq_kas_kecil', JSON.stringify(expenses));
-  }, [expenses]);
+    localStorage.setItem('kq_karyawan', JSON.stringify(staffList));
+    localStorage.setItem('kq_staff', JSON.stringify(staffList));
+  }, [staffList]);
 
   useEffect(() => {
-    localStorage.setItem('bq_profile', JSON.stringify(profile));
-  }, [profile]);
+    localStorage.setItem('kq_shifts', JSON.stringify(shiftRecords));
+  }, [shiftRecords]);
 
   useEffect(() => {
-    localStorage.setItem('bq_permissions', JSON.stringify(permissions));
-  }, [permissions]);
+    localStorage.setItem('kq_commissions', JSON.stringify(commissions));
+  }, [commissions]);
 
   useEffect(() => {
-    localStorage.setItem('bq_branches', JSON.stringify(branches));
-  }, [branches]);
+    localStorage.setItem('kq_profil', JSON.stringify(storeProfile));
+    localStorage.setItem('kq_profile', JSON.stringify(storeProfile));
+  }, [storeProfile]);
 
-  // Navigation state
-  // screen: 'dashboard' | 'submenu' | 'feature'
+  useEffect(() => {
+    localStorage.setItem('kq_gemini', JSON.stringify(geminiConfig));
+  }, [geminiConfig]);
+
+  // Reload all states from localStorage
+  const handleReloadAllData = () => {
+    const savedKatalog = localStorage.getItem('kq_katalog') || localStorage.getItem('kq_menu_items');
+    if (savedKatalog) setMenuItems(JSON.parse(savedKatalog));
+    else setMenuItems([]);
+
+    const savedTransaksi = localStorage.getItem('kq_transaksi') || localStorage.getItem('kq_orders');
+    if (savedTransaksi) setOrders(JSON.parse(savedTransaksi));
+    else setOrders([]);
+
+    const savedStok = localStorage.getItem('kq_stok') || localStorage.getItem('kq_ingredients');
+    if (savedStok) setRawIngredients(JSON.parse(savedStok));
+    else setRawIngredients([]);
+
+    const savedPelanggan = localStorage.getItem('kq_pelanggan') || localStorage.getItem('kq_customers');
+    if (savedPelanggan) setCustomers(JSON.parse(savedPelanggan));
+    else setCustomers([]);
+
+    const savedKaryawan = localStorage.getItem('kq_karyawan') || localStorage.getItem('kq_staff');
+    if (savedKaryawan) setStaffList(JSON.parse(savedKaryawan));
+    else setStaffList([]);
+
+    const savedProfil = localStorage.getItem('kq_profil') || localStorage.getItem('kq_profile');
+    if (savedProfil) setStoreProfile(JSON.parse(savedProfil));
+  };
+  // Template & Navigation state
+  const [activeTemplate, setActiveTemplate] = useState(() => AppTemplateSwitcher.getActiveTemplate());
+  const currentNavModules = activeTemplate.navigation;
+
+  const handleSwitchTemplate = (templateKey: string) => {
+    AppTemplateSwitcher.switchTemplate(templateKey);
+    setActiveTemplate(AppTemplateSwitcher.getActiveTemplate());
+  };
+
   const [currentScreen, setCurrentScreen] = useState<'dashboard' | 'submenu' | 'feature'>('dashboard');
-  const [selectedModule, setSelectedModule] = useState<MenuModuleConfig | null>(null);
-  const [selectedSubMenu, setSelectedSubMenu] = useState<SubMenuItemConfig | null>(null);
+  const [selectedModule, setSelectedModule] = useState<KedaiQuNavModule | null>(null);
+  const [selectedSubMenu, setSelectedSubMenu] = useState<KedaiQuSubMenu | null>(null);
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
-  const [preselectedQueueForPOS, setPreselectedQueueForPOS] = useState<ServiceQueue | null>(null);
-
-  // Modals state
-  const [isNewQueueModalOpen, setIsNewQueueModalOpen] = useState(false);
-  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-  const [activeReceiptTx, setActiveReceiptTx] = useState<Transaction | null>(null);
-  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
   // Navigation handlers
-  const handleSelectModule = (mod: MenuModuleConfig) => {
+  const handleSelectModule = (mod: KedaiQuNavModule) => {
     setSelectedModule(mod);
     setCurrentTab(mod.id);
     setCurrentScreen('submenu');
   };
 
-  const handleSelectSubMenu = (subItem: SubMenuItemConfig) => {
+  const handleSelectSubMenu = (subItem: KedaiQuSubMenu) => {
     setSelectedSubMenu(subItem);
     setCurrentScreen('feature');
   };
@@ -281,7 +264,7 @@ export default function App() {
     if (tabId === 'dashboard') {
       handleGoHome();
     } else {
-      const targetMod = MENU_MODULES.find((m) => m.id === tabId);
+      const targetMod = currentNavModules.find((m) => m.id === tabId);
       if (targetMod) {
         setSelectedModule(targetMod);
         setCurrentScreen('submenu');
@@ -289,342 +272,221 @@ export default function App() {
     }
   };
 
-  // Queue actions
-  const handleAddQueue = (newQ: ServiceQueue) => {
-    setQueues([newQ, ...queues]);
-    // Also check if customer exists, otherwise add
-    const existingCust = customers.find((c) => c.plateNumber === newQ.plateNumber);
-    if (!existingCust) {
-      setCustomers([
-        {
-          id: `c-${Date.now()}`,
-          name: newQ.customerName,
-          phone: newQ.customerPhone,
-          plateNumber: newQ.plateNumber,
-          vehicleModel: newQ.vehicleModel,
-          year: '2024',
-          lastServiceDate: 'Hari Ini',
-          totalVisits: 1,
-          loyaltyPoints: 20,
-          notes: newQ.complaint
-        },
-        ...customers
-      ]);
-    }
-  };
-
-  const handleUpdateQueueStatus = (id: string, status: ServiceStatus, progress?: number) => {
-    setQueues((prev) =>
-      prev.map((q) => {
-        if (q.id === id) {
-          const newProgress = progress !== undefined ? progress : status === 'selesai' ? 100 : q.progressPercent;
-          return { ...q, status, progressPercent: newProgress };
-        }
-        return q;
-      })
-    );
-  };
-
-  const handleUpdateQueueItems = (queueId: string, items: ServiceItem[], totalCost: number) => {
-    setQueues((prev) =>
-      prev.map((q) => (q.id === queueId ? { ...q, items, totalCost } : q))
-    );
-  };
-
-  const handleResetDailyQueues = () => {
-    setQueues([]);
-  };
-
-  const handlePayQueueAtPOS = (queue: ServiceQueue) => {
-    setPreselectedQueueForPOS(queue);
-    // Switch directly to POS feature
-    const kasirMod = MENU_MODULES.find((m) => m.id === 'kasir');
-    if (kasirMod) {
-      setSelectedModule(kasirMod);
-      setSelectedSubMenu(kasirMod.subMenus[0]);
+  // Direct quick actions
+  const handleOpenPOSDirectly = () => {
+    const orderMod = currentNavModules.find((m) => m.id === 'order');
+    if (orderMod) {
+      setSelectedModule(orderMod);
+      setSelectedSubMenu(orderMod.sub_menus[0]); // order_pos
+      setCurrentTab('order');
       setCurrentScreen('feature');
     }
   };
 
-  // Transaction action
-  const handleCompleteTransaction = (newTx: Transaction) => {
-    setTransactions([newTx, ...transactions]);
-    // If it corresponds to a queue, mark it as 'diambil'
-    if (preselectedQueueForPOS) {
-      handleUpdateQueueStatus(preselectedQueueForPOS.id, 'diambil', 100);
-      setPreselectedQueueForPOS(null);
+  const handleOpenKitchenDirectly = () => {
+    const orderMod = currentNavModules.find((m) => m.id === 'order');
+    if (orderMod) {
+      setSelectedModule(orderMod);
+      setSelectedSubMenu(orderMod.sub_menus[1]); // antrian_dapur
+      setCurrentTab('order');
+      setCurrentScreen('feature');
     }
   };
 
-  const handleOpenReceipt = (tx: Transaction) => {
-    setActiveReceiptTx(tx);
-    setIsReceiptModalOpen(true);
-  };
+  // Order actions
+  const handleAddOrder = (newOrder: OrderTicket) => {
+    setOrders([newOrder, ...orders]);
 
-  // Inventory actions
-  const handleUpdateStock = (id: string, newStock: number) => {
-    setSpareparts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, stock: newStock } : p))
-    );
-  };
-
-  const handleAddNewPart = (newPartData: Omit<Sparepart, 'id'>) => {
-    const newPart: Sparepart = {
-      ...newPartData,
-      id: `p-${Date.now()}`
-    };
-    setSpareparts([newPart, ...spareparts]);
-  };
-
-  // Inbound arrival: syncs existing or adds new, logs procurement
-  const handleSaveInboundStock = (
-    itemData: {
-      code: string;
-      name: string;
-      category: Sparepart['category'];
-      brand: string;
-      stockToAdd: number;
-      minStock: number;
-      buyPrice: number;
-      sellPrice: number;
-      unit: string;
-      rackLocation: string;
-      supplier?: string;
-      poNumber?: string;
-      notes?: string;
-    }
-  ) => {
-    const existingIndex = spareparts.findIndex(
-      (p) => p.code.trim().toLowerCase() === itemData.code.trim().toLowerCase()
-    );
-
-    let resolvedPartName = itemData.name;
-    let resolvedCategory = itemData.category;
-    let isRestock = false;
-
-    if (existingIndex >= 0) {
-      isRestock = true;
-      const current = spareparts[existingIndex];
-      resolvedPartName = current.name;
-      resolvedCategory = current.category;
-      const updatedList = [...spareparts];
-      updatedList[existingIndex] = {
-        ...current,
-        name: itemData.name || current.name,
-        category: itemData.category || current.category,
-        brand: itemData.brand || current.brand,
-        stock: current.stock + itemData.stockToAdd,
-        minStock: itemData.minStock || current.minStock,
-        buyPrice: itemData.buyPrice || current.buyPrice,
-        sellPrice: itemData.sellPrice || current.sellPrice,
-        unit: itemData.unit || current.unit,
-        rackLocation: itemData.rackLocation || current.rackLocation,
-        supplier: itemData.supplier || current.supplier
-      };
-      setSpareparts(updatedList);
-    } else {
-      const newPart: Sparepart = {
-        id: `p-${Date.now()}`,
-        code: itemData.code,
-        name: itemData.name,
-        category: itemData.category,
-        brand: itemData.brand,
-        stock: itemData.stockToAdd,
-        minStock: itemData.minStock,
-        buyPrice: itemData.buyPrice,
-        sellPrice: itemData.sellPrice,
-        unit: itemData.unit,
-        rackLocation: itemData.rackLocation,
-        supplier: itemData.supplier
-      };
-      setSpareparts([newPart, ...spareparts]);
+    // Automatically deduct inventory stock via ResepEngine
+    const cartPayload = newOrder.items.map((item) => ({
+      item_name: item.menuName,
+      menuName: item.menuName,
+      menuId: item.menuId,
+      qty: item.qty
+    }));
+    const updatedIngredients = ResepEngine.deductBahanBaku(cartPayload);
+    if (updatedIngredients && updatedIngredients.length > 0) {
+      setRawIngredients(updatedIngredients);
     }
 
-    // Automatically record procurement log
-    const now = new Date();
-    const dateFormatted = `${now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}, ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
-    const newPO: ProcurementRecord = {
-      id: `po-${Date.now()}`,
-      poNumber: itemData.poNumber || `INB-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${Date.now().toString().slice(-4)}`,
-      code: itemData.code,
-      name: resolvedPartName,
-      category: resolvedCategory,
-      supplier: itemData.supplier || 'Distributor Resmi Bengkel',
-      qty: itemData.stockToAdd,
-      unit: itemData.unit || 'Pcs',
-      buyPrice: itemData.buyPrice,
-      totalCost: itemData.buyPrice * itemData.stockToAdd,
-      date: dateFormatted,
-      timestamp: Date.now(),
-      receiver: userSession?.name || 'Admin Logistik Bengkel',
-      type: isRestock ? 'Restock' : 'Baru',
-      notes: itemData.notes || (isRestock ? 'Penambahan stok inbound' : 'Suku cadang baru katalog')
-    };
-    setProcurements([newPO, ...procurements]);
-  };
-
-  // Damaged goods reporting: automatically reduces stock from master catalog
-  const handleReportDamagedGood = (
-    report: {
-      sparepartId?: string;
-      code: string;
-      name: string;
-      qty: number;
-      unit: string;
-      damageReason: string;
-      reportedBy: string;
-      notes?: string;
-    }
-  ) => {
-    const now = new Date();
-    const dateFormatted = `${now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}, ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
-    const newDamage: DamagedGood = {
-      id: `dmg-${Date.now()}`,
-      sparepartId: report.sparepartId,
-      code: report.code,
-      name: report.name,
-      qty: report.qty,
-      unit: report.unit,
-      damageReason: report.damageReason,
-      reportedBy: report.reportedBy || userSession?.name || 'Mekanik / Tim Bengkel',
-      date: dateFormatted,
-      timestamp: Date.now(),
-      status: 'Diajukan',
-      notes: report.notes
-    };
-    setDamagedGoods([newDamage, ...damagedGoods]);
-
-    // Automatically reduce master catalog stock
-    if (report.code) {
-      setSpareparts((prev) =>
-        prev.map((p) => {
-          if (p.code.toLowerCase() === report.code.toLowerCase() || p.id === report.sparepartId) {
-            return { ...p, stock: Math.max(0, p.stock - report.qty) };
-          }
-          return p;
-        })
+    // Sync to PelangganService if customer phone exists
+    if (newOrder.customerPhone) {
+      const updatedCusts = PelangganService.syncFromTransaction({
+        name: newOrder.customerName,
+        phone: newOrder.customerPhone,
+        total_spent: newOrder.total,
+        favorite_item: newOrder.items[0]?.menuName || '-'
+      });
+      if (updatedCusts) {
+        setCustomers(updatedCusts as any);
+      }
+    } else if (newOrder.customerName && !newOrder.customerName.startsWith('Tamu')) {
+      setCustomers((prev) =>
+        prev.map((c) =>
+          c.name.toLowerCase() === newOrder.customerName.toLowerCase()
+            ? {
+                ...c,
+                totalVisits: c.totalVisits + 1,
+                totalSpend: c.totalSpend + newOrder.total,
+                points: c.points + Math.floor(newOrder.total / 10000) * 5,
+                lastVisit: 'Hari Ini'
+              }
+            : c
+        )
       );
     }
+
+    // Tambah pesanan ke live queue dapur via AntrianService
+    AntrianService.addOrderToQueue({
+      order_id: newOrder.orderNumber || newOrder.id,
+      table_number: newOrder.tableNumber,
+      order_type: newOrder.orderType,
+      items: newOrder.items.map((i) => ({
+        item_name: i.menuName,
+        menuName: i.menuName,
+        qty: i.qty,
+        variant: i.selectedVariants?.join(', ') || '',
+        notes: i.notes || ''
+      })),
+      customer_name: newOrder.customerName,
+      status: 'WAITING'
+    });
   };
 
-  // Quick search from dashboard
-  const handleQuickSearchPlat = (query: string) => {
-    // Open service module with search prefilled
-    const servMod = MENU_MODULES.find((m) => m.id === 'servis');
-    if (servMod) {
-      setSelectedModule(servMod);
-      setSelectedSubMenu(servMod.subMenus[0]);
-      setCurrentScreen('feature');
-    }
+  const handleUpdateKitchenStatus = (orderId: string, status: KitchenStatus) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, kitchenStatus: status } : o))
+    );
+
+    // Update live queue dapur via AntrianService
+    const queueStatusMap: Record<KitchenStatus, string> = {
+      menunggu: 'WAITING',
+      proses: 'COOKING',
+      siap_saji: 'READY',
+      selesai: 'COMPLETED'
+    };
+    AntrianService.updateStatus(orderId, queueStatusMap[status] || status);
   };
 
-  const handleMarkAllNotifsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  // Data Safety Actions
+  const handleBackupData = () => {
+    const backupObj = {
+      version: 'KedaiQu 2.0',
+      exportedAt: new Date().toISOString(),
+      menuItems,
+      orders,
+      rawIngredients,
+      inboundRecords,
+      opnameRecords,
+      customers,
+      vouchers,
+      staffList,
+      shiftRecords,
+      commissions,
+      storeProfile,
+      geminiConfig
+    };
+
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backupObj, null, 2));
+    const downloadAnchor = document.createElement('a');
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`;
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `kedaiqu_backup_${dateStr}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
   };
 
-  const unreadNotifsCount = notifications.filter((n) => !n.read).length;
-
-  const handleRestoreData = (backupData: any) => {
-    if (backupData.queues) setQueues(backupData.queues);
-    if (backupData.spareparts) setSpareparts(backupData.spareparts);
-    if (backupData.transactions) setTransactions(backupData.transactions);
-    if (backupData.customers) setCustomers(backupData.customers);
-    if (backupData.damagedGoods) setDamagedGoods(backupData.damagedGoods);
-    if (backupData.procurements) setProcurements(backupData.procurements);
-    if (backupData.campaigns) setCampaigns(backupData.campaigns);
-    if (backupData.vouchers) setVouchers(backupData.vouchers);
-    if (backupData.expenses) setExpenses(backupData.expenses);
-    if (backupData.profile) setProfile(backupData.profile);
-    if (backupData.permissions) setPermissions(backupData.permissions);
-    if (backupData.branches) setBranches(backupData.branches);
-    if (backupData.subscription) {
-      setSubscription(backupData.subscription);
-      localStorage.setItem('bq_subscription', JSON.stringify(backupData.subscription));
-    }
+  const handleRestoreData = (backupJson: any) => {
+    if (backupJson.menuItems) setMenuItems(backupJson.menuItems);
+    if (backupJson.orders) setOrders(backupJson.orders);
+    if (backupJson.rawIngredients) setRawIngredients(backupJson.rawIngredients);
+    if (backupJson.inboundRecords) setInboundRecords(backupJson.inboundRecords);
+    if (backupJson.opnameRecords) setOpnameRecords(backupJson.opnameRecords);
+    if (backupJson.customers) setCustomers(backupJson.customers);
+    if (backupJson.vouchers) setVouchers(backupJson.vouchers);
+    if (backupJson.staffList) setStaffList(backupJson.staffList);
+    if (backupJson.shiftRecords) setShiftRecords(backupJson.shiftRecords);
+    if (backupJson.commissions) setCommissions(backupJson.commissions);
+    if (backupJson.storeProfile) setStoreProfile(backupJson.storeProfile);
+    if (backupJson.geminiConfig) setGeminiConfig(backupJson.geminiConfig);
   };
 
   const handleResetData = (mode: 'daily' | 'factory' | 'clean_slate') => {
     if (mode === 'daily') {
-      // Clear completed queues and today's transactions
-      setQueues((prev) => prev.filter((q) => q.status === 'menunggu' || q.status === 'proses'));
-      setTransactions([]);
+      // Clear today's orders
+      setOrders([]);
+      localStorage.setItem('kq_orders', '[]');
+      alert('Antrian order dan riwayat transaksi harian telah dibersihkan.');
     } else if (mode === 'clean_slate') {
-      // REQUIREMENT: Pastikan reset berfungsi hapus data tidak tersisa (0 records left)
-      setQueues([]);
-      setSpareparts([]);
-      setTransactions([]);
+      setMenuItems([]);
+      setOrders([]);
+      setRawIngredients([]);
+      setInboundRecords([]);
+      setOpnameRecords([]);
       setCustomers([]);
-      setDamagedGoods([]);
-      setProcurements([]);
-      setCampaigns([]);
       setVouchers([]);
-      setExpenses([]);
-      setNotifications([]);
+      setStaffList([]);
+      setShiftRecords([]);
+      setCommissions([]);
 
-      localStorage.setItem('bq_queues', '[]');
-      localStorage.setItem('bq_spareparts', '[]');
-      localStorage.setItem('bq_transactions', '[]');
-      localStorage.setItem('bq_customers', '[]');
-      localStorage.setItem('bq_damaged_goods', '[]');
-      localStorage.setItem('bq_procurements', '[]');
-      localStorage.setItem('bq_campaigns', '[]');
-      localStorage.setItem('bq_vouchers', '[]');
-      localStorage.setItem('bq_kas_kecil', '[]');
-      localStorage.setItem('bq_notifs', '[]');
+      localStorage.setItem('kq_menu_items', '[]');
+      localStorage.setItem('kq_orders', '[]');
+      localStorage.setItem('kq_ingredients', '[]');
+      localStorage.setItem('kq_inbounds', '[]');
+      localStorage.setItem('kq_opnames', '[]');
+      localStorage.setItem('kq_customers', '[]');
+      localStorage.setItem('kq_vouchers', '[]');
+      localStorage.setItem('kq_staff', '[]');
+      localStorage.setItem('kq_shifts', '[]');
+      localStorage.setItem('kq_commissions', '[]');
+      alert('Seluruh database KedaiQu telah dibersihkan bersih (0 records tersisa).');
     } else if (mode === 'factory') {
-      // Muat ulang data sampel / demo pabrik lengkap
-      setQueues(INITIAL_QUEUES);
-      setSpareparts(INITIAL_SPAREPARTS);
-      setTransactions(INITIAL_TRANSACTIONS);
+      setMenuItems(INITIAL_MENU_ITEMS);
+      setOrders(INITIAL_ORDERS);
+      setRawIngredients(INITIAL_RAW_INGREDIENTS);
+      setInboundRecords(INITIAL_INBOUND_RECORDS);
+      setOpnameRecords(INITIAL_OPNAME_RECORDS);
       setCustomers(INITIAL_CUSTOMERS);
-      setDamagedGoods(INITIAL_DAMAGED_GOODS);
-      setProcurements(INITIAL_PROCUREMENTS);
-      setCampaigns(INITIAL_CAMPAIGNS);
       setVouchers(INITIAL_VOUCHERS);
-      setProfile(INITIAL_PROFILE);
-      setPermissions(INITIAL_PERMISSIONS);
-      setBranches(INITIAL_BRANCHES);
-      setNotifications(INITIAL_NOTIFICATIONS);
+      setStaffList(INITIAL_STAFF);
+      setShiftRecords(INITIAL_SHIFTS);
+      setCommissions(INITIAL_COMMISSIONS);
+      setStoreProfile(INITIAL_STORE_PROFILE);
+      setGeminiConfig(INITIAL_GEMINI_CONFIG);
 
-      localStorage.setItem('bq_queues', JSON.stringify(INITIAL_QUEUES));
-      localStorage.setItem('bq_spareparts', JSON.stringify(INITIAL_SPAREPARTS));
-      localStorage.setItem('bq_transactions', JSON.stringify(INITIAL_TRANSACTIONS));
-      localStorage.setItem('bq_customers', JSON.stringify(INITIAL_CUSTOMERS));
-      localStorage.setItem('bq_damaged_goods', JSON.stringify(INITIAL_DAMAGED_GOODS));
-      localStorage.setItem('bq_procurements', JSON.stringify(INITIAL_PROCUREMENTS));
-      localStorage.setItem('bq_campaigns', JSON.stringify(INITIAL_CAMPAIGNS));
-      localStorage.setItem('bq_vouchers', JSON.stringify(INITIAL_VOUCHERS));
-      localStorage.setItem('bq_profile', JSON.stringify(INITIAL_PROFILE));
-      localStorage.setItem('bq_permissions', JSON.stringify(INITIAL_PERMISSIONS));
-      localStorage.setItem('bq_branches', JSON.stringify(INITIAL_BRANCHES));
-      localStorage.setItem('bq_notifs', JSON.stringify(INITIAL_NOTIFICATIONS));
+      localStorage.setItem('kq_menu_items', JSON.stringify(INITIAL_MENU_ITEMS));
+      localStorage.setItem('kq_orders', JSON.stringify(INITIAL_ORDERS));
+      localStorage.setItem('kq_ingredients', JSON.stringify(INITIAL_RAW_INGREDIENTS));
+      localStorage.setItem('kq_inbounds', JSON.stringify(INITIAL_INBOUND_RECORDS));
+      localStorage.setItem('kq_opnames', JSON.stringify(INITIAL_OPNAME_RECORDS));
+      localStorage.setItem('kq_customers', JSON.stringify(INITIAL_CUSTOMERS));
+      localStorage.setItem('kq_vouchers', JSON.stringify(INITIAL_VOUCHERS));
+      localStorage.setItem('kq_staff', JSON.stringify(INITIAL_STAFF));
+      localStorage.setItem('kq_shifts', JSON.stringify(INITIAL_SHIFTS));
+      localStorage.setItem('kq_commissions', JSON.stringify(INITIAL_COMMISSIONS));
+      localStorage.setItem('kq_profile', JSON.stringify(INITIAL_STORE_PROFILE));
+      localStorage.setItem('kq_gemini', JSON.stringify(INITIAL_GEMINI_CONFIG));
+      alert('Data demo sampel F&B KedaiQu berhasil dimuat ulang!');
     }
   };
 
-  // Decide which screen to render
+  // Render main screen router
   const renderCurrentView = () => {
     if (currentScreen === 'dashboard') {
       return (
         <HomeDashboard
-          modules={MENU_MODULES}
+          modules={currentNavModules}
           onSelectModule={handleSelectModule}
-          queues={queues}
-          onOpenNewQueue={() => setIsNewQueueModalOpen(true)}
-          onOpenNotifications={() => setIsNotifDrawerOpen(true)}
-          unreadNotifsCount={unreadNotifsCount}
-          onSelectQueueItem={(q) => {
-            const servMod = MENU_MODULES.find((m) => m.id === 'servis');
-            if (servMod) {
-              setSelectedModule(servMod);
-              setSelectedSubMenu(servMod.subMenus[0]);
-              setCurrentScreen('feature');
-            }
-          }}
-          onQuickSearchPlat={handleQuickSearchPlat}
-          profile={profile}
-          userSession={userSession}
-          onLogout={handleLogout}
-          subscription={subscription}
+          orders={orders}
+          onOpenPos={handleOpenPOSDirectly}
+          onOpenKitchen={handleOpenKitchenDirectly}
+          storeProfile={storeProfile}
+          rawIngredients={rawIngredients}
+          activeTemplateId={activeTemplate.id}
+          activeTemplateName={activeTemplate.name}
+          onSwitchTemplate={handleSwitchTemplate}
         />
       );
     }
@@ -642,286 +504,106 @@ export default function App() {
 
     if (currentScreen === 'feature' && selectedModule) {
       switch (selectedModule.id) {
-        case 'servis':
+        case 'order':
           return (
-            <ServiceDetailView
-              initialTab={selectedSubMenu?.id || 'registrasi'}
-              queues={queues}
+            <OrderModuleView
+              initialSubMenu={selectedSubMenu?.id || 'order_pos'}
               onBack={handleBack}
-              onAddQueue={handleAddQueue}
-              onUpdateQueueStatus={handleUpdateQueueStatus}
-              onUpdateQueueItems={handleUpdateQueueItems}
-              onSelectQueueForInvoice={handlePayQueueAtPOS}
-              onResetDailyQueues={handleResetDailyQueues}
-              spareparts={spareparts}
-              mechanics={INITIAL_MECHANICS}
-            />
-          );
-        case 'kasir':
-          return (
-            <CashierPOSView
-              initialTab={selectedSubMenu?.id || 'kasir'}
-              onBack={handleBack}
-              spareparts={spareparts}
-              transactions={transactions}
-              queues={queues}
-              onCompleteTransaction={handleCompleteTransaction}
-              onOpenReceipt={handleOpenReceipt}
-              preselectedQueue={preselectedQueueForPOS}
-              onUpdateQueueStatus={handleUpdateQueueStatus}
-              onAddQueue={handleAddQueue}
-            />
-          );
-        case 'inventaris':
-          return (
-            <InventoryView
-              initialTab={selectedSubMenu?.id || 'sparepart-datang'}
-              spareparts={spareparts}
-              damagedGoods={damagedGoods}
-              procurements={procurements}
-              onBack={handleBack}
-              onUpdateStock={handleUpdateStock}
-              onAddNewPart={handleAddNewPart}
-              onSaveInboundStock={handleSaveInboundStock}
-              onReportDamagedGood={handleReportDamagedGood}
-            />
-          );
-        case 'pelanggan':
-          return (
-            <CustomerView
-              initialTab={selectedSubMenu?.id || 'daftar-pelanggan'}
+              menuItems={menuItems}
+              orders={orders}
+              onAddOrder={handleAddOrder}
+              onUpdateKitchenStatus={handleUpdateKitchenStatus}
+              storeProfile={storeProfile}
               customers={customers}
-              queues={queues}
-              transactions={transactions}
-              onBack={handleBack}
-              onAddNewCustomer={(c) => setCustomers([c, ...customers])}
-            />
-          );
-        case 'marketing':
-          return (
-            <MarketingView
-              initialTab={selectedSubMenu?.id || 'broadcast-wa'}
-              customers={customers}
-              campaigns={campaigns}
               vouchers={vouchers}
-              onBack={handleBack}
-              onSendCampaign={(newCmp) => setCampaigns([newCmp, ...campaigns])}
-              onAddVoucher={(newVch) => setVouchers([newVch, ...vouchers])}
-              onToggleVoucherActive={(vchId) =>
-                setVouchers((prev) =>
-                  prev.map((v) => (v.id === vchId ? { ...v, isActive: !v.isActive } : v))
-                )
-              }
             />
           );
+
+        case 'menu_makanan':
+          return (
+            <MenuModuleView
+              initialSubMenu={selectedSubMenu?.id || 'katalog_menu'}
+              onBack={handleBack}
+              menuItems={menuItems}
+              onUpdateMenuItems={setMenuItems}
+              rawIngredients={rawIngredients}
+            />
+          );
+
+        case 'stok_bahan':
+          return (
+            <StokModuleView
+              initialSubMenu={selectedSubMenu?.id || 'data_bahan'}
+              onBack={handleBack}
+              rawIngredients={rawIngredients}
+              onUpdateRawIngredients={setRawIngredients}
+              inboundRecords={inboundRecords}
+              onAddInboundRecord={(rec) => setInboundRecords([rec, ...inboundRecords])}
+              opnameRecords={opnameRecords}
+              onAddOpnameRecord={(op) => setOpnameRecords([op, ...opnameRecords])}
+            />
+          );
+
+        case 'marketing_pelanggan':
+          return (
+            <MarketingModuleView
+              initialSubMenu={selectedSubMenu?.id || 'database_pelanggan'}
+              onBack={handleBack}
+              customers={customers}
+              onUpdateCustomers={setCustomers}
+              vouchers={vouchers}
+              onUpdateVouchers={setVouchers}
+              storeProfile={storeProfile}
+            />
+          );
+
+        case 'karyawan':
+          return (
+            <KaryawanModuleView
+              initialSubMenu={selectedSubMenu?.id || 'data_staff'}
+              onBack={handleBack}
+              staffList={staffList}
+              onUpdateStaffList={setStaffList}
+              shiftRecords={shiftRecords}
+              onAddShiftRecord={(rec) => setShiftRecords([rec, ...shiftRecords])}
+              commissions={commissions}
+              onUpdateCommissions={setCommissions}
+            />
+          );
+
         case 'laporan':
           return (
-            <ReportView
-              initialTab={selectedSubMenu?.id || 'laporan-pendapatan'}
-              transactions={transactions}
-              mechanics={INITIAL_MECHANICS}
-              queues={queues}
-              expenses={expenses}
+            <LaporanModuleView
+              initialSubMenu={selectedSubMenu?.id || 'lap_omzet'}
               onBack={handleBack}
+              orders={orders}
+              menuItems={menuItems}
+              storeProfile={storeProfile}
             />
           );
-        case 'basic':
+
+        case 'pengaturan':
           return (
-            <BasicProfileView
+            <PengaturanModuleView
+              initialSubMenu={selectedSubMenu?.id || 'profil_kedai'}
               onBack={handleBack}
-              profile={profile}
-              onSaveProfile={(updated) => setProfile(updated)}
+              storeProfile={storeProfile}
+              onSaveProfile={setStoreProfile}
+              geminiConfig={geminiConfig}
+              onSaveGeminiConfig={setGeminiConfig}
+              menuItems={menuItems}
+              onReloadAllData={handleReloadAllData}
             />
           );
-        case 'core':
-          if (selectedSubMenu?.id === 'core-profile') {
-            return (
-              <BasicProfileView
-                onBack={handleBack}
-                profile={profile}
-                onSaveProfile={(updated) => setProfile(updated)}
-              />
-            );
-          }
-          if (selectedSubMenu?.id === 'core-devices') {
-            return (
-              <DeviceSyncView
-                onBack={handleBack}
-                subscription={subscription}
-                workshopProfile={profile}
-              />
-            );
-          }
-          return (
-            <CorePermissionsView
-              onBack={handleBack}
-              permissions={permissions}
-              onUpdatePermissions={(updated) => setPermissions(updated)}
-            />
-          );
-        case 'corporate':
-          if (selectedSubMenu?.id === 'corp-profile') {
-            return (
-              <BasicProfileView
-                onBack={handleBack}
-                profile={profile}
-                onSaveProfile={(updated) => setProfile(updated)}
-              />
-            );
-          }
-          if (selectedSubMenu?.id === 'corp-permissions') {
-            return (
-              <CorePermissionsView
-                onBack={handleBack}
-                permissions={permissions}
-                onUpdatePermissions={(updated) => setPermissions(updated)}
-              />
-            );
-          }
-          if (selectedSubMenu?.id === 'corp-devices') {
-            return (
-              <DeviceSyncView
-                onBack={handleBack}
-                subscription={subscription}
-                workshopProfile={profile}
-              />
-            );
-          }
-          return (
-            <CorporateBranchesView
-              onBack={handleBack}
-              branches={branches}
-              onSaveBranches={(updated) => setBranches(updated)}
-            />
-          );
-        case 'setting':
-          if (selectedSubMenu?.id === 'setting-profil' || selectedSubMenu?.id === 'basic-profile' || selectedSubMenu?.id === 'core-profile' || selectedSubMenu?.id === 'corp-profile') {
-            return (
-              <BasicProfileView
-                onBack={handleBack}
-                profile={profile}
-                onSaveProfile={(updated) => setProfile(updated)}
-              />
-            );
-          }
-          if (selectedSubMenu?.id === 'setting-akses' || selectedSubMenu?.id === 'core-permissions' || selectedSubMenu?.id === 'corp-permissions') {
-            return (
-              <CorePermissionsView
-                onBack={handleBack}
-                permissions={permissions}
-                onUpdatePermissions={(updated) => setPermissions(updated)}
-                onNavigateToDevices={() => {
-                  setSelectedSubMenu({
-                    id: 'setting-perangkat',
-                    title: 'Tautkan HP & Sinkron',
-                    subtitle: 'Hubungkan HP Karyawan (QR Code)',
-                    iconName: 'Smartphone',
-                    badge: 'Multi-HP',
-                    targetView: 'setting-perangkat'
-                  });
-                }}
-              />
-            );
-          }
-          if (selectedSubMenu?.id === 'setting-cabang' || selectedSubMenu?.id === 'corp-branches') {
-            return (
-              <CorporateBranchesView
-                onBack={handleBack}
-                branches={branches}
-                onSaveBranches={(updated) => setBranches(updated)}
-                onNavigateToDevices={() => {
-                  setSelectedSubMenu({
-                    id: 'setting-perangkat',
-                    title: 'Tautkan HP & Sinkron',
-                    subtitle: 'Hubungkan HP Karyawan (QR Code)',
-                    iconName: 'Smartphone',
-                    badge: 'Multi-HP',
-                    targetView: 'setting-perangkat'
-                  });
-                }}
-              />
-            );
-          }
-          if (selectedSubMenu?.id === 'setting-perangkat' || selectedSubMenu?.id === 'core-devices' || selectedSubMenu?.id === 'corp-devices') {
-            return (
-              <DeviceSyncView
-                onBack={handleBack}
-                subscription={subscription}
-                workshopProfile={profile}
-              />
-            );
-          }
-          return (
-            <SettingView
-              initialTab={selectedSubMenu?.id || 'setting-tema'}
-              onBack={handleBack}
-              queues={queues}
-              spareparts={spareparts}
-              transactions={transactions}
-              customers={customers}
-              damagedGoods={damagedGoods}
-              procurements={procurements}
-              campaigns={campaigns}
-              vouchers={vouchers}
-              expenses={expenses}
-              profile={profile}
-              permissions={permissions}
-              branches={branches}
-              onRestoreData={handleRestoreData}
-              onResetData={handleResetData}
-              userSession={userSession}
-              onLogout={handleLogout}
-              subscription={subscription}
-              onReloadDemoData={() => handleResetData('factory')}
-              onNavigateToDevices={() => {
-                setSelectedSubMenu({
-                  id: 'setting-perangkat',
-                  title: 'Tautkan HP & Sinkron',
-                  subtitle: 'Hubungkan HP Karyawan (QR Code)',
-                  iconName: 'Smartphone',
-                  badge: 'Multi-HP',
-                  targetView: 'setting-perangkat'
-                });
-              }}
-              onNavigateToProfile={() => {
-                setSelectedSubMenu({
-                  id: 'setting-profil',
-                  title: 'Profil Bengkel',
-                  subtitle: 'Nama Bengkel, Alamat, Pemilik & Kontak',
-                  iconName: 'Store',
-                  badge: 'Profil',
-                  targetView: 'setting-profil'
-                });
-              }}
-              onNavigateToPermissions={() => {
-                setSelectedSubMenu({
-                  id: 'setting-akses',
-                  title: 'Hak Akses & Role',
-                  subtitle: 'Otorisasi Supervisor & Kasir',
-                  iconName: 'Key',
-                  badge: 'SPV & Kasir',
-                  targetView: 'setting-akses'
-                });
-              }}
-              onNavigateToBranches={() => {
-                setSelectedSubMenu({
-                  id: 'setting-cabang',
-                  title: 'Manajemen Cabang',
-                  subtitle: 'Kelola Kantor Cabang & Outlet',
-                  iconName: 'Building2',
-                  badge: 'Cabang',
-                  targetView: 'setting-cabang'
-                });
-              }}
-            />
-          );
+
         default:
           return (
-            <SubMenuPage
-              module={selectedModule}
-              onBack={handleBack}
-              onSelectSubMenu={handleSelectSubMenu}
-            />
+            <div className="p-8 text-center text-slate-500">
+              Modul tidak ditemukan.
+              <button onClick={handleGoHome} className="block mt-4 text-blue-600 font-bold mx-auto">
+                Kembali ke Beranda
+              </button>
+            </div>
           );
       }
     }
@@ -929,60 +611,21 @@ export default function App() {
     return null;
   };
 
-  // Tampilkan Halaman Login Auto Google Account terlebih dahulu sebelum masuk ke Halaman Utama
-  if (!userSession) {
-    return (
-      <AndroidFrame canGoBack={false}>
-        <LoginScreen
-          onLoginSuccess={handleLoginSuccess}
-          defaultEmail="smbsyariah@gmail.com"
-        />
-      </AndroidFrame>
-    );
-  }
+  const activeKitchenCount = orders.filter((o) => o.kitchenStatus !== 'selesai').length;
 
   return (
-    <AndroidFrame
-      onHomePress={handleGoHome}
-      onBackPress={handleBack}
-      canGoBack={currentScreen !== 'dashboard'}
-      bottomBar={
+    <AndroidFrame>
+      <div className="flex flex-col flex-1 min-h-screen bg-slate-50 overflow-x-hidden">
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col">{renderCurrentView()}</main>
+
+        {/* Global Bottom Navigation Bar */}
         <BottomNavBar
           currentTab={currentTab}
           onTabChange={handleBottomTabChange}
-          activeQueueCount={queues.filter((q) => q.status !== 'diambil').length}
+          activeOrderCount={activeKitchenCount}
         />
-      }
-    >
-      {/* Active Screen View - Hanya bagian ini yang dapat di-scroll */}
-      <div className="flex-1 flex flex-col min-h-full">
-        {renderCurrentView()}
       </div>
-
-      {/* Global Modals */}
-      <NewQueueModal
-        isOpen={isNewQueueModalOpen}
-        onClose={() => setIsNewQueueModalOpen(false)}
-        onAddQueue={handleAddQueue}
-        mechanics={INITIAL_MECHANICS}
-        existingQueueCount={queues.length}
-      />
-
-      <ReceiptModal
-        isOpen={isReceiptModalOpen}
-        onClose={() => {
-          setIsReceiptModalOpen(false);
-          setActiveReceiptTx(null);
-        }}
-        transaction={activeReceiptTx}
-      />
-
-      <NotificationDrawer
-        isOpen={isNotifDrawerOpen}
-        onClose={() => setIsNotifDrawerOpen(false)}
-        notifications={notifications}
-        onMarkAllAsRead={handleMarkAllNotifsRead}
-      />
     </AndroidFrame>
   );
 }

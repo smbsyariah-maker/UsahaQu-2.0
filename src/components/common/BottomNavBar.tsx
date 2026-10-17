@@ -1,22 +1,22 @@
 import React from 'react';
-import { LayoutDashboard, Wrench, Receipt, Package, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, Coffee, Package, BarChart3 } from 'lucide-react';
 
 interface BottomNavBarProps {
   currentTab: string;
   onTabChange: (tabId: string) => void;
-  activeQueueCount?: number;
+  activeOrderCount?: number;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   currentTab,
   onTabChange,
-  activeQueueCount = 4
+  activeOrderCount = 0
 }) => {
   const tabs = [
     { id: 'dashboard', label: 'Beranda', icon: LayoutDashboard },
-    { id: 'servis', label: 'Servis', icon: Wrench, badge: activeQueueCount > 0 ? activeQueueCount : undefined },
-    { id: 'kasir', label: 'Kasir POS', icon: Receipt },
-    { id: 'inventaris', label: 'Inventaris', icon: Package },
+    { id: 'order', label: 'Order', icon: UtensilsCrossed, badge: activeOrderCount > 0 ? activeOrderCount : undefined },
+    { id: 'menu_makanan', label: 'Menu', icon: Coffee },
+    { id: 'stok_bahan', label: 'Stok', icon: Package },
     { id: 'laporan', label: 'Laporan', icon: BarChart3 }
   ];
 
@@ -35,13 +35,13 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
             type="button"
             onClick={() => onTabChange(tab.id)}
             className={`flex flex-col items-center justify-center py-0.5 px-2 rounded-lg transition-all duration-150 relative group cursor-pointer active:scale-95 ${
-              isActive ? 'text-[#008952]' : 'text-slate-400 hover:text-slate-600'
+              isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
             <div className="relative">
               <div
                 className={`p-1 rounded-lg transition-all ${
-                  isActive ? 'bg-emerald-50 text-[#008952]' : 'group-hover:bg-slate-50'
+                  isActive ? 'bg-blue-50 text-blue-600' : 'group-hover:bg-slate-50'
                 }`}
               >
                 <IconComponent className="w-[18px] h-[18px] stroke-[2.2]" />
@@ -54,7 +54,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
             </div>
             <span
               className={`text-[9.5px] leading-tight tracking-tight mt-0.5 transition-all ${
-                isActive ? 'font-black text-[#008952]' : 'font-medium text-slate-500'
+                isActive ? 'font-black text-blue-600' : 'font-medium text-slate-500'
               }`}
             >
               {tab.label}
